@@ -11,7 +11,7 @@ import (
 
 var DB *sql.DB
 
-func InitDB() {
+func InitDB() *sql.DB {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
@@ -37,4 +37,6 @@ func InitDB() {
 	}
 
 	log.Println("✅ Connected to PostgreSQL")
+
+	return DB
 }
