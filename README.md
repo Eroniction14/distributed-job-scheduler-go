@@ -1,111 +1,141 @@
-# 🧠 Distributed Job Scheduler in Go
+# Distributed Job Scheduler in Go
 
-A lightweight job scheduling engine using Go, PostgreSQL, and Docker.
+A distributed job scheduler built in Go with PostgreSQL persistence and Docker. Provides a REST API for creating and managing scheduled jobs, with a clean architecture designed for horizontal scaling.
 
-## 🚀 Features
+## Architecture
 
-- Add jobs with cron-style schedule
-- Pause/Resume job execution
-- Logs all job runs
-- REST API for job management
-- Dockerized with PostgreSQL backend
+```
+┌─────────────────────────────────────┐
+│           HTTP API (Go)             │
+│   POST /api/jobs  |  GET /health    │
+├─────────────────────────────────────┤
+│         Job Handler Layer           │
+│   Decode → Validate → Persist       │
+├─────────────────────────────────────┤
+│        PostgreSQL Database          │
+│   jobs (name, command, schedule,    │
+│          assigned_worker)           │
+└─────────────────────────────────────┘
+         Containerized via Docker
+```
 
-## 🧱 Tech Stack
+## Project Structure
 
-- Go + net/http
-- PostgreSQL
-- robfig/cron v3
-- Docker & Docker Compose
+```
+distributed-job-scheduler-go/
+├── cmd/
+│   └── main.go           # Entry point, route registration
+├── db/
+│   └── db.go             # PostgreSQL connection pool
+├── internal/
+│   └── job/
+│       └── handler.go    # Job struct + CreateJobHandler
+├── Dockerfile            # Multi-stage Go build
+├── docker-compose.yml    # App + PostgreSQL services
+├── go.mod
+└── go.sum
+```
 
----
+## API
 
-## ⚙️ Setup
+### Create a Job
+```
+POST /api/jobs
+Content-Type: application/json
 
-### 1. Clone the repo
+{
+  "name": "backup-job",
+  "command": "pg_dump mydb > backup.sql",
+  "schedule": "0 2 * * *",
+  "assigned_worker": "worker-1"
+}
+```
+
+Response:
+```json
+{ "message": "Job created successfully" }
+```
+
+### Health Check
+```
+GET /health
+→ 200 OK
+```
+
+## Tech Stack
+
+- **Go** — HTTP server using `net/http` (stdlib, no framework overhead)
+- **PostgreSQL** — Job persistence with parameterized queries
+- **Docker + Docker Compose** — Containerized app and database
+- **godotenv** — Environment variable management
+
+## Getting Started
+
+### Prerequisites
+- Go 1.21+
+- Docker + Docker Compose
+
+### Run with Docker (recommended)
 
 ```bash
-git clone https://github.com/<your-username>/distributed-job-scheduler-go.git
+git clone https://github.com/Eroniction14/distributed-job-scheduler-go.git
 cd distributed-job-scheduler-go
 
-
-DB_HOST=db
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=job_scheduler
-
 docker-compose up --build
+```
 
-+--------------------------+
-|     Go Scheduler API     |
-| - REST + Cron Engine     |
-+------------+-------------+
-             |
-             |
-+------------v-------------+
-|      PostgreSQL DB       |
-| - Jobs & Execution Logs  |
-+--------------------------+
+Server starts on `http://localhost:8080`
 
+### Run locally
 
----
+```bash
+# Set up PostgreSQL and create a .env file
+cp .env.example .env
+# Edit .env with your DB credentials
 
-## ✅ 2. 📥 Postman Collection Export
+go mod download
+go run cmd/main.go
+```
 
-Here’s a JSON template you can copy → save as `JobScheduler.postman_collection.json`, then import into Postman:
+### Test the API
 
-```json
-{
-  "info": {
-    "_postman_id": "uuid-here",
-    "name": "Job Scheduler API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Create Job",
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Say Hello\",\n  \"command\": \"echo Hello\",\n  \"schedule\": \"*/1 * * * *\",\n  \"status\": \"active\"\n}"
-        },
-        "url": { "raw": "http://localhost:8080/api/jobs", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api", "jobs"] }
-      }
-    },
-    {
-      "name": "List All Jobs",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "http://localhost:8080/api/jobs/all", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api", "jobs", "all"] }
-      }
-    },
-    {
-      "name": "Get Job By ID",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "http://localhost:8080/api/jobs/1", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api", "jobs", "1"] }
-      }
-    },
-    {
-      "name": "Update Job Status (Pause/Resume)",
-      "request": {
-        "method": "PUT",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": {
-          "mode": "raw",
-          "raw": "{ \"status\": \"paused\" }"
-        },
-        "url": { "raw": "http://localhost:8080/api/jobs/1", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api", "jobs", "1"] }
-      }
-    },
-    {
-      "name": "Get Job Logs",
-      "request": {
-        "method": "GET",
-        "url": { "raw": "http://localhost:8080/api/job_logs", "protocol": "http", "host": ["localhost"], "port": "8080", "path": ["api", "job_logs"] }
-      }
-    }
-  ]
-}
+```bash
+# Create a job
+curl -X POST http://localhost:8080/api/jobs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "daily-backup",
+    "command": "pg_dump mydb",
+    "schedule": "0 2 * * *",
+    "assigned_worker": "worker-1"
+  }'
+
+# Health check
+curl http://localhost:8080/health
+```
+
+## Database Schema
+
+```sql
+CREATE TABLE jobs (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL,
+    command         TEXT NOT NULL,
+    schedule        VARCHAR(100),
+    assigned_worker VARCHAR(100),
+    created_at      TIMESTAMP DEFAULT NOW()
+);
+```
+
+## Roadmap
+
+- [ ] Job status tracking (pending → running → complete → failed)
+- [ ] Worker heartbeat + failure detection
+- [ ] Job retry logic with backoff
+- [ ] Cron-based job execution engine
+- [ ] GET /api/jobs — list and filter jobs
+- [ ] Distributed locking (prevent duplicate execution)
+
+## Author
+
+**Eroniction Presley** — Northeastern University, Khoury College of Computer Science

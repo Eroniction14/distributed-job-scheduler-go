@@ -1,0 +1,26 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Go binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+/dist/
+
+# Go test cache
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
