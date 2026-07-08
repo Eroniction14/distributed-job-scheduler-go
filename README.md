@@ -41,26 +41,32 @@ A fault-tolerant distributed job scheduler built in Go with Kafka-based job dist
 distributed-job-scheduler-go/
 ├── cmd/
 │   └── main.go                  # Entry point, wires all components
-├── db/
-│   └── db.go                    # PostgreSQL connection pool
 ├── internal/
+│   ├── db/
+│   │   └── db.go                # PostgreSQL connection pool
 │   ├── job/
 │   │   ├── handler.go           # CRUD API handlers
 │   │   └── logs.go              # Job logs handler
-│   └── kafka/
-│       ├── producer.go          # Kafka producer + topic creation
-│       └── consumer.go          # Kafka consumer + job execution
-├── scheduler/
-│   └── scheduler.go             # Cron-based job scheduler
+│   ├── kafka/
+│   │   ├── producer.go          # Kafka producer + topic creation
+│   │   └── consumer.go          # Kafka consumer + job execution
+│   ├── scheduler/
+│   │   └── scheduler.go         # Cron-based job scheduler
+│   └── types/
+│       └── types.go             # Shared Job struct used across packages
 ├── k8s/
 │   ├── configmap.yaml           # Environment configuration
 │   ├── postgres.yaml            # PostgreSQL deployment + service
 │   ├── kafka.yaml               # Kafka + Zookeeper deployment
 │   └── scheduler.yaml           # Go app deployment (3 replicas) + service
+├── terraform/
+│   ├── main.tf                  # VPC, RDS PostgreSQL, provider config
+│   ├── variables.tf             # Input variables (region, db credentials)
+│   └── outputs.tf               # Output values (RDS endpoint etc.)
 ├── init/
-│   └── schema.sql               # PostgreSQL schema
+│   └── schema.sql               # PostgreSQL schema with constraints
 ├── static/
-│   └── index.html               # Web UI
+│   └── index.html               # Web UI for job management
 ├── Dockerfile
 ├── docker-compose.yml
 ├── go.mod

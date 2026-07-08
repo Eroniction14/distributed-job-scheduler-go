@@ -7,16 +7,21 @@ import (
 	"github.com/Eroniction14/distributed-job-scheduler-go/internal/db"
 )
 
+// JobLog represents a single job execution record from the job_logs table.
+// It captures the outcome of each time a job was run — either by the
+// Kafka consumer or the cron scheduler.
 type JobLog struct {
 	ID      int    `json:"id"`
 	JobID   int    `json:"job_id"`
 	RunTime string `json:"run_time"`
-	Result  string `json:"result"`
-	Status  string `json:"status"`
+	Result  string `json:"result"` // command output or execution timestamp
+	Status  string `json:"status"` // "success" or "failed"
 }
 
+// GetJobLogsHandler handles GET /api/job_logs.
+// Returns the 20 most recent job execution logs ordered by run time descending.
+// Used by the frontend to display the Job Logs table.
 func GetJobLogsHandler(w http.ResponseWriter, r *http.Request) {
-	// Optional: filter by job_id using /api/logs?job_id=1
 	query := `
 		SELECT id, job_id, result, status, run_time
 		FROM job_logs
@@ -28,6 +33,7 @@ func GetJobLogsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to fetch logs: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// Ensure the database connection is returned to the pool after reading.
 	defer rows.Close()
 
 	var logs []JobLog
