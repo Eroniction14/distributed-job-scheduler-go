@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Eroniction14/distributed-job-scheduler-go/db"
+	"github.com/Eroniction14/distributed-job-scheduler-go/internal/db"
 	"github.com/Eroniction14/distributed-job-scheduler-go/internal/job"
 	"github.com/Eroniction14/distributed-job-scheduler-go/internal/kafka"
-	"github.com/Eroniction14/distributed-job-scheduler-go/scheduler"
+	"github.com/Eroniction14/distributed-job-scheduler-go/internal/scheduler"
 
 	"github.com/joho/godotenv"
 )

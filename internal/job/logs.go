@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Eroniction14/distributed-job-scheduler-go/db"
+	"github.com/Eroniction14/distributed-job-scheduler-go/internal/db"
 )
 
 type JobLog struct {

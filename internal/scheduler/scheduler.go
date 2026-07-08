@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Eroniction14/distributed-job-scheduler-go/db"
+	"github.com/Eroniction14/distributed-job-scheduler-go/internal/db"
 	_ "github.com/lib/pq"
 	"github.com/robfig/cron/v3"
 )
