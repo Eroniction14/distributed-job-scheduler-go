@@ -28,6 +28,7 @@ func main() {
 	}
 
 	go scheduler.StartScheduler(dbConn)
+	go kafka.StartConsumer(dbConn)
 
 	// === CORS Middleware ===
 	enableCORS := func(next http.HandlerFunc) http.HandlerFunc {
