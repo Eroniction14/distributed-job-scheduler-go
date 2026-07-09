@@ -1,7 +1,5 @@
+frontend/node_modules
+frontend/build
 .git
 .terraform
 terraform/.terraform
-*.tfstate
-*.tfstate.backup
-node_modules
-.env

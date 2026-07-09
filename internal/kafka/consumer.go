@@ -64,15 +64,12 @@ func StartConsumer(db *sql.DB) {
 // Execution output is captured and stored in job_logs for auditing.
 func executeJob(db *sql.DB, job types.Job) {
 	// Mark the job as running before execution begins.
-	// This prevents other workers from picking up the same job
-	// and provides visibility into what is currently being processed.
 	_, updErr := db.Exec("UPDATE jobs SET status = 'running' WHERE id = $1", job.ID)
 	if updErr != nil {
 		log.Printf("Failed to update status to running: %v", updErr)
 	}
 
 	// Split the command string into executable + arguments.
-	// e.g. "pg_dump mydb" → ["pg_dump", "mydb"]
 	cmdParts := strings.Fields(job.Command)
 	if len(cmdParts) == 0 {
 		log.Printf("Empty command for job ID %d", job.ID)
@@ -80,27 +77,29 @@ func executeJob(db *sql.DB, job types.Job) {
 	}
 
 	// Execute the command and capture both stdout and stderr.
-	// CombinedOutput waits for the command to finish and returns all output.
 	cmd := exec.Command(cmdParts[0], cmdParts[1:]...)
 	output, err := cmd.CombinedOutput()
 
-	// Determine final status based on whether the command exited successfully.
-	status := "done"
+	// Two separate status values for two different tables.
+	// jobs table allows: pending|active|paused|running|done|failed
+	// job_logs table allows: success|failed
+	jobStatus := "done"
+	logStatus := "success"
 	if err != nil {
-		status = "failed"
+		jobStatus = "failed"
+		logStatus = "failed"
 	}
 
 	// Update the job's final status in PostgreSQL.
-	_, updErr = db.Exec("UPDATE jobs SET status = $1 WHERE id = $2", status, job.ID)
+	_, updErr = db.Exec("UPDATE jobs SET status = $1 WHERE id = $2", jobStatus, job.ID)
 	if updErr != nil {
 		log.Printf("Failed to update status: %v", updErr)
 	}
 
 	// Insert an execution log entry with the command output and result status.
-	// job_logs provides an audit trail of every job execution attempt.
 	_, err = db.Exec(
 		"INSERT INTO job_logs (job_id, run_time, result, status) VALUES ($1, $2, $3, $4)",
-		job.ID, time.Now(), string(output), status,
+		job.ID, time.Now(), string(output), logStatus,
 	)
 	if err != nil {
 		log.Printf("Failed to log job %d: %v", job.ID, err)
